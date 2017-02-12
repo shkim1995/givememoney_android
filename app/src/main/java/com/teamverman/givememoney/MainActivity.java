@@ -1,0 +1,848 @@
+package com.teamverman.givememoney;
+
+/**
+ * Created by ickhyun on 2017-02-12.
+ */
+import android.app.Activity;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Rect;
+import android.graphics.Typeface;
+import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
+import android.util.Log;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.Window;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.lang.Math;
+
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.InterstitialAd;
+import com.kakao.kakaolink.*;
+
+
+import com.google.android.gms.ads.AdRequest;
+
+
+/**
+ * Created by 김세훈 on 2017-02-11.
+ */
+public class MainActivity extends Activity {
+
+    InputMethodManager inputMethodManager;
+
+    //player정보
+    ArrayList<String> playerName;
+    int playerNum;
+
+    //원 (graphic) 정보
+    static Circles[] circles;
+
+    //채무관계 정보 [i][j] : i가 j에게
+    static int[][] payment;
+
+    //mode 정보 (normal - selected)
+    boolean isNormalMode = true;
+    int host = -1;
+    boolean[] isSelected;
+
+    boolean isChanged = false;
+
+    int small_rad;
+    int big_rad;
+    int center_x;
+    int center_y;
+    int gap;
+
+    //Layouts
+    RelativeLayout mainLayout;
+    LinearLayout menuTopNormal;
+    LinearLayout menuTopSelected;
+    LinearLayout menuButNormal;
+    LinearLayout menuButSelected;
+    CenterView centerView;
+    LinearLayout nameField;
+
+    //Buttons
+    Button backBtn;
+    Button frontBtn;
+    Button logBtn;
+    Button shareBtn;
+    Button changeBtn;
+    Button selectAllBtn;
+    Button deselectAllBtn;
+    Button cancelBtn;
+    Button insertButton;
+    Button tutorialBtn;
+
+    //Texts
+    EditText editText;
+    TextView text1;
+    TextView text2;
+
+    static PaymentLog log;
+
+
+    final double RANDOM_NUM = 0.15;
+
+    InterstitialAd interstitialAd;
+
+    public void displayInterstitial() {
+        if (interstitialAd.isLoaded()) {
+
+            interstitialAd.show();
+        }
+    }
+
+    private void requestNewInterstitial() {
+        AdRequest adRequest2 = new AdRequest.Builder()
+                .addTestDevice("1A66417BC5450C8887755FEB37D48889")
+                .build();
+        interstitialAd.loadAd(adRequest2);
+    }
+
+    public boolean randomEvent(double rand){
+        if(rand>1)
+            return true;
+        if(rand<0)
+            return false;
+        double temp = Math.random();
+        Log.v("AAAAA", "" + temp);
+
+        if(temp>1-0.5*rand) {
+            return true;
+        }
+        if(temp<0.5*rand)
+            return true;
+        return false;
+    }
+
+    //////////////////////내부 클래스/////////////////////////////////////
+    class Circles {
+        int x, y, r;
+        Rect rec;
+        String name;
+
+        Circles() {
+            x = y = r = 0;
+            rec = new Rect(0, 0, 0, 0);
+        }
+
+        Circles(int x, int y, int r) {
+            this.x = x;
+            this.y = y;
+            this.r = r;
+            rec = new Rect(x - r, y - r, x + r, y + r);
+        }
+    }
+
+    class Info{
+        int host;
+        ArrayList<Integer> baggers;
+        int pay;
+    }
+
+    class PaymentLog{
+        ArrayList<Info> log;
+        int lastIndex;
+
+        PaymentLog(){
+            log = new ArrayList<Info>();
+            lastIndex = -1;
+        }
+
+        Info get(int i){
+            return log.get(i);
+        }
+
+        void push_back(Info info){
+            //뒤에 값 제거
+            for(int i=log.size()-1; i>lastIndex; i--){
+                log.remove(i);
+            }
+            lastIndex++;
+            log.add(info);
+        }
+
+        int size(){
+            return lastIndex+1;
+        }
+
+        boolean frontable(){
+            if (log.size()!=lastIndex+1)
+                return true;
+            return false;
+        }
+
+        boolean backable(){
+            if(lastIndex!=-1)
+                return true;
+            return false;
+        }
+    }
+
+
+    /////////////////////////////////////////////////////////////////////////
+
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        setContentView(R.layout.activity_main);
+
+        inputMethodManager = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+
+        Intent intent = getIntent();
+        playerName = intent.getStringArrayListExtra("NAMES");
+        if(playerName!=null) {
+            playerNum = playerName.size();
+        }
+        else{
+            Intent temp_intent =  new Intent(this, TitleActivity.class);
+            startActivity(temp_intent);
+            finish();
+        }
+        payment = new int[playerNum][playerNum];
+        for(int i=0; i<playerNum; i++)
+            for(int j=0; j<playerNum; j++)
+                payment[i][j] = 0;
+
+        isSelected = new boolean[playerNum];
+        for(int i=0; i<playerNum; i++)
+            isSelected[i] = false;
+
+        //LAYOUTS INITIALIZATION
+        mainLayout = (RelativeLayout) findViewById(R.id.main_layout);
+        menuTopNormal = (LinearLayout) findViewById(R.id.menu_top_normal);
+        menuTopSelected = (LinearLayout) findViewById(R.id.menu_top_selected);
+        menuButNormal = (LinearLayout) findViewById(R.id.menu_bot_normal);
+        menuButSelected = (LinearLayout) findViewById(R.id.menu_bot_selected);
+
+        menuTopSelected.setVisibility(View.INVISIBLE);
+        menuButSelected.setVisibility(View.INVISIBLE);
+
+        nameField = (LinearLayout)findViewById(R.id.name_field) ;
+        nameField.setVisibility(View.INVISIBLE);
+
+        //BUTTONS INITIALIZATION
+        backBtn = (Button)findViewById(R.id.menu_back_btn);
+        frontBtn = (Button)findViewById(R.id.menu_front_btn);
+        logBtn = (Button)findViewById(R.id.menu_log_btn);
+        shareBtn = (Button)findViewById(R.id.menu_share_btn);
+        changeBtn = (Button)findViewById(R.id.change_btn);
+        selectAllBtn = (Button)findViewById(R.id.select_all_btn);
+        deselectAllBtn = (Button)findViewById(R.id.deselect_all_btn);
+        cancelBtn = (Button)findViewById(R.id.cancel_btn);
+        insertButton = (Button)findViewById(R.id.menu_insert_btn);
+        tutorialBtn = (Button)findViewById(R.id.menu_tutorial_btn);
+
+        initializeButtons();
+        frontBtn.setEnabled(false);
+        backBtn.setEnabled(false);
+
+        //Text Initialization
+        editText = (EditText)findViewById(R.id.menu_edittext);
+        text1 = (TextView)findViewById(R.id.text1);
+        text2 = (TextView)findViewById(R.id.text2);
+        Typeface typeFace = Typeface.createFromAsset(getAssets(), "fonts/TmonMonsori.ttf");
+        text1.setTypeface(typeFace);
+        text2.setTypeface(typeFace);
+        text1.setTextColor(Color.GRAY);
+        text2.setTextColor(Color.BLACK);
+
+        //DRAW CENTER GRAPHICS
+        centerView = new CenterView(this);
+        mainLayout.addView(centerView);
+
+        log = new PaymentLog();
+
+        interstitialAd = new InterstitialAd(this);
+        interstitialAd.setAdUnitId(getResources().getString(R.string.ad_unit_id));
+        AdRequest adRequest2 = new AdRequest.Builder().addTestDevice("1A66417BC5450C8887755FEB37D48889").build();
+        interstitialAd.loadAd(adRequest2);
+        // start Ads
+        interstitialAd.setAdListener(new AdListener() {
+            @Override
+            public void onAdClosed() {
+                requestNewInterstitial();
+            }
+        });
+
+        requestNewInterstitial();
+
+
+    }
+
+    public boolean onKeyDown(int keyCode, KeyEvent event){
+
+        final Intent intent = new Intent(this, NameActivity.class);
+
+        if(keyCode==KeyEvent.KEYCODE_BACK) {
+            String alertTitle = "뒤로 가시겠습니까?";
+            String buttonMessage = "뒤로 갈 경우 현재 상태가 저장/복원되지 않습니다!!";
+            String btnYes = "네";
+            String btnNo = "아니오";
+
+            new AlertDialog.Builder(MainActivity.this)
+                    .setTitle(alertTitle)
+                    .setMessage(buttonMessage)
+                    .setPositiveButton(btnYes, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            //startActivity(intent);
+                            finish();
+                        }
+                    })
+                    .setNegativeButton(btnNo, null)
+                    .show();
+            return true;
+        }
+        return false;
+    }
+
+    void switchMenus(){
+        if(!isNormalMode) {
+            menuTopSelected.setVisibility(View.INVISIBLE);
+            menuButSelected.setVisibility(View.INVISIBLE);
+            menuTopNormal.setVisibility(View.VISIBLE);
+            menuButNormal.setVisibility(View.VISIBLE);
+
+            nameField.setVisibility(View.INVISIBLE);
+            isNormalMode = true;
+            inputMethodManager.hideSoftInputFromWindow(editText.getWindowToken(), 0);
+            centerView.invalidate();
+        }
+
+        else{
+
+            menuTopSelected.setVisibility(View.VISIBLE);
+            menuButSelected.setVisibility(View.VISIBLE);
+            menuTopNormal.setVisibility(View.INVISIBLE);
+            menuButNormal.setVisibility(View.INVISIBLE);
+
+            nameField.setVisibility(View.VISIBLE);
+            text2.setText(playerName.get(host));
+            isNormalMode = false;
+            centerView.invalidate();
+        }
+    }
+
+    void frontBackBtnSwitch(){
+        if(log.backable())
+            backBtn.setEnabled(true);
+        else
+            backBtn.setEnabled(false);
+
+        if(log.frontable())
+            frontBtn.setEnabled(true);
+        else
+            frontBtn.setEnabled(false);
+    }
+
+    void initializeButtons(){
+
+        final Intent intentPop = new Intent(this, LogPopup.class);
+        final Intent intentTutorial = new Intent(this, TutPopup.class);
+
+        //insert Btn
+        insertButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                int payment;
+
+                //채무자가 아무도 없을 때
+                int numBaggers = 0;
+                for(int i=0; i<playerNum; i++)
+                    if(isSelected[i])
+                        numBaggers++;
+                if(numBaggers==0){
+                    Toast.makeText(MainActivity.this, "빚쟁이들을 입력해 주세요", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+
+                //숫자 입력 오류
+                try{
+                    payment = Integer.parseInt(editText.getText().toString());
+                } catch(Exception e){
+                    Toast.makeText(MainActivity.this, "숫자를 입력해 주세요!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                editText.setText("");
+
+
+                //log update
+
+                Info newinfo = new Info();
+                newinfo.pay = payment;
+                ArrayList<Integer> baggers = new ArrayList<Integer>();
+                for(int i=0; i<playerNum; i++){
+                    if(isSelected[i]==true){
+                        isSelected[i] = false;
+                        baggers.add(i);
+                    }
+                }
+                newinfo.baggers = baggers;
+                newinfo.host = host;
+                host = -1;
+
+                log.push_back(newinfo);
+                renew_payment();
+                centerView.invalidate();
+
+                // mode change
+                switchMenus();
+
+                //back, front btn activation
+                frontBackBtnSwitch();
+
+                if(randomEvent(RANDOM_NUM)){
+                    displayInterstitial();
+                }
+            }
+        });
+
+        //select All Btn
+        selectAllBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                for(int i=0; i<playerNum; i++){
+                    isSelected[i] = true;
+                }
+                centerView.invalidate();
+            }
+        });
+
+        //deselect All Btn
+        deselectAllBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                for(int i=0; i<playerNum; i++){
+                    isSelected[i] = false;
+                }
+                centerView.invalidate();
+            }
+        });
+
+        //cancel Btn
+        cancelBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                for(int i=0; i<playerNum; i++){
+                    isSelected[i] = false;
+                }
+                host = -1;
+                centerView.invalidate();
+                switchMenus();
+            }
+        });
+
+        //change Btn
+        changeBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(!isChanged){
+                    isChanged = true;
+                    changeBtn.setText("되돌리기!");
+                    frontBtn.setEnabled(false);
+                    backBtn.setEnabled(false);
+                    change_payment();
+                    centerView.invalidate();
+                    return;
+                }
+                else{
+                    isChanged = false;
+                    changeBtn.setText("간략하게!!");
+                    if(log.lastIndex!=0)
+                        backBtn.setEnabled(true);
+                    if(log.frontable())
+                        frontBtn.setEnabled(true);
+                    renew_payment();
+                    centerView.invalidate();
+                }
+            }
+        });
+
+        //frontBtn
+        frontBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(log.frontable()){
+                    log.lastIndex++;
+                    renew_payment();
+                    centerView.invalidate();
+                    frontBackBtnSwitch();
+                }
+            }
+        });
+
+        //back Btn
+        backBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(log.backable()){
+                    log.lastIndex--;
+                    renew_payment();
+                    centerView.invalidate();
+                    frontBackBtnSwitch();
+                }
+            }
+        });
+
+
+        //log Btn
+        logBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                intentPop.putExtra("NAMES", playerName);
+                startActivity(intentPop);
+            }
+        });
+
+        //share Btn
+        shareBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                shareKakao();
+            }
+        });
+
+        //tutorial Btn
+        tutorialBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(intentTutorial);
+            }
+        });
+    }
+
+    public void shareKakao()
+    {
+        try{
+            final KakaoLink kakaoLink = KakaoLink.getKakaoLink(this);
+            final KakaoTalkLinkMessageBuilder kakaoBuilder = kakaoLink.createKakaoTalkLinkMessageBuilder();
+
+        /*메시지 추가*/
+            String text = "----돈 정산 목록----\n";
+
+            for(int i=0; i<playerNum; i++){
+                boolean line = false;
+                for(int j=0; j<playerNum; j++){
+                    if(payment[i][j]>0){
+                        line = true;
+                    }
+                }
+                if(line)
+                    text = text+"\n";
+                for(int j=0; j<playerNum; j++){
+                    if(payment[i][j]>0){
+                        text = text+playerName.get(i)+" -> "+playerName.get(j)+" : "+payment[i][j]+"원\n";
+                    }
+                }
+            }
+
+            kakaoBuilder.addText(text);
+
+        /*앱 실행버튼 추가*/
+            kakaoBuilder.addAppButton("앱 실행 혹은 다운로드");
+
+        /*메시지 발송*/
+            kakaoLink.sendMessage(kakaoBuilder, this);
+
+        }catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+
+    int round(int n){
+        if(n%10<5)
+            return (n/10)*10;
+        return (n/10+1)*10;
+    }
+
+    /////////////////////////PAYMENT PUNCTIONS/////////////////////////////////
+    void renew_payment() {
+
+        for (int i = 0; i < playerNum; i++)
+            for (int j = 0; j < playerNum; j++)
+                payment[i][j] = 0;
+
+        //일단 우겨넣자!
+        for (int i = 0; i < log.size(); i++) {
+            int host = log.get(i).host;
+
+            int num_bagger = log.get(i).baggers.size();
+            int money = round(log.get(i).pay / num_bagger);
+            for (int j = 0; j < num_bagger; j++) {
+                int bagger = log.get(i).baggers.get(j);
+                if (host == bagger) continue;
+                payment[bagger][host] += money;
+            }
+        }
+
+        //뒷정리
+        for (int i = 0; i < playerNum; i++) {
+            for (int j = i + 1; j < playerNum; j++) {
+                //음수 처리
+
+                //대소 비교
+                if (payment[i][j] >= payment[j][i]) {
+                    payment[i][j] = payment[i][j] - payment[j][i];
+                    payment[j][i] = 0;
+                } else if (payment[i][j] <= payment[j][i]) {
+                    payment[j][i] = payment[j][i] - payment[i][j];
+                    payment[i][j] = 0;
+                }
+            }
+        }
+    }
+
+    void change_payment(){
+        while(true){
+            boolean temp3 = false;
+
+            for(int i=0; i<playerNum; i++){
+                boolean temp2 = false;
+
+                for(int j=0; j<playerNum; j++){
+                    boolean temp = false;
+
+                    if(payment[i][j]>0){
+                        for(int k=0; k<playerNum; k++){
+                            if(payment[j][k]>0){//삼각관계 존재
+                                temp=true;
+                                if(payment[i][j]<=payment[j][k]){
+                                    payment[j][k] -= payment[i][j];
+                                    payment[i][k] += payment[i][j];
+                                    payment[i][j] = 0;
+                                }
+                                else{
+                                    payment[i][k] += payment[j][k];
+                                    payment[i][j] -= payment[j][k];
+                                    payment[j][k] = 0;
+                                }
+                                break;//k문 탈출
+                            }
+                        }
+                    }
+                    if(temp){
+                        temp2 = true;
+                        break;//j문 탈출
+                    }
+                }
+                if(temp2){
+                    temp3 = true;
+                    break; //i문 탈출
+                }
+            }
+            if(temp3==false)
+                break;
+
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////
+
+    ///////////////////////////MAIN GRAPHICS///////////////////////////////
+
+    class CenterView extends View {
+        Context con;
+
+        public CenterView(Context c){
+            super(c);
+            con = c;
+        }
+
+        public void initCircles(){
+            circles = new Circles[playerNum];
+            double theta = 2*Math.PI/playerNum;
+            for(int i=0; i<playerNum; i++){
+                int x = (int)(center_x+big_rad*Math.sin(i*theta));
+                int y = (int)(center_y-big_rad*Math.cos(i*theta));
+                circles[i] = new Circles(x, y, small_rad);
+                circles[i].name = playerName.get(i);
+            }
+        }
+
+        public double length(double x1, double y1, double x2, double y2){
+            return Math.sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2));
+        }
+
+        public void drawArrow(Canvas canvas, int from, int to, boolean b, int money){
+
+            int small_len = canvas.getWidth()/30;
+            double theta_var = Math.PI/7;
+            double x1 = circles[from].x;
+            double x2 = circles[to].x;
+            double y1 = circles[from].y;
+            double y2 = circles[to].y;
+            double x0 = 0.5*(x1+x2);
+            double y0 = 0.5*(y1+y2);
+
+
+            double total_len = length(x1, y1, x2, y2);
+            double len = total_len-2*small_rad;
+
+            double xx1 = ((total_len-len)*x0+len*x1)/total_len;
+            double xx2 = ((total_len-len)*x0+len*x2)/total_len;
+            double yy1 = ((total_len-len)*y0+len*y1)/total_len;
+            double yy2 = ((total_len-len)*y0+len*y2)/total_len;
+            double x3 = xx2+(xx1-xx2)*small_len/len;
+            double y3 = yy2+(yy1-yy2)*small_len/len;
+
+            double x4 = x3+(yy1-yy2)*0.5*small_len/len;
+            double x5 = x3-(yy1-yy2)*0.5*small_len/len;
+            double y4 = y3-(xx1-xx2)*0.5*small_len/len;
+            double y5 = y3+(xx1-xx2)*0.5*small_len/len;
+
+            Paint paint = new Paint();
+            paint.setStrokeWidth(4);
+            paint.setColor(Color.GRAY);
+            if(b==false) {
+                canvas.drawLine((int) xx1, (int) yy1, (int) xx2, (int) yy2, paint);
+                canvas.drawLine((int) xx2, (int) yy2, (int) x4, (int) y4, paint);
+                canvas.drawLine((int) xx2, (int) yy2, (int) x5, (int) y5, paint);
+            }
+            else{
+                paint.setTextSize(50);
+                Path path = new Path();
+                path.reset();
+                path.moveTo((int)xx2, (int)yy2);
+                path.lineTo((int)xx1, (int)yy1);
+
+                canvas.drawLine((int) xx1, (int) yy1, (int) xx2, (int) yy2, paint);
+                canvas.drawLine((int) xx2, (int) yy2, (int) x4, (int) y4, paint);
+                canvas.drawLine((int) xx2, (int) yy2, (int) x5, (int) y5, paint);
+
+                paint.setColor(Color.BLACK);
+                String temp = "     ";
+                if(playerNum==8)
+                    temp = "  ";
+                if(playerNum==7)
+                    temp = "   ";
+                canvas.drawTextOnPath(temp+money, path, 0, 0, paint);
+            }
+        }
+
+        //click 위치 반환
+        public int findRects(int x, int y){
+            //사용자 찾기 -> 0~num-1
+            for(int i=0; i<playerNum; i++){
+                if(circles[i].rec.contains(x, y))
+                    return i;
+            }
+            //없으면 -1
+            return -1;
+        }
+
+        public void onDraw(Canvas canvas) {
+            center_x = canvas.getWidth()/2;
+            center_y = canvas.getHeight()/2;
+            if(playerNum<6)
+                small_rad = (int)(canvas.getWidth()/11);
+            else if(playerNum==6)
+                small_rad = (int)(canvas.getWidth()/12.5);
+            else if(playerNum==7)
+                small_rad = (int)(canvas.getWidth()/13);
+            else
+                small_rad = (int)(canvas.getWidth()/14);
+            gap = small_rad/3;
+            big_rad = center_x-small_rad-gap;
+
+            ///////////동그라미////////////////
+            initCircles();
+
+            for(int i=0; i<playerNum; i++) {
+                Bitmap icon;
+                if(!isSelected[i]) {
+                    icon = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.player_nor);
+                }
+                else {
+                    icon = BitmapFactory.decodeResource(getContext().getResources(), R.drawable.player_sel);
+                }
+
+                canvas.drawBitmap(icon, null, circles[i].rec, null);
+            }
+
+
+            //////////////이름///////////////
+            for(int i=0; i<playerNum; i++){
+                //이름 출력
+                Paint paint = new Paint();
+                paint.setColor(Color.WHITE);
+                int size = 0;
+                do {
+                    paint.setTextSize(++ size);
+                } while(paint.measureText(circles[i].name) < small_rad*1.7 && size<60);
+                Rect rt = new Rect();
+                paint.getTextBounds(circles[i].name, 0, circles[i].name.length(), rt);
+                paint.setColor(Color.WHITE);
+
+                canvas.drawText(circles[i].name, circles[i].x-rt.width()/2, circles[i].y-rt.top/2, paint);
+
+            }
+
+            ////////////////화살표//////////////
+
+            if(isNormalMode){
+                for (int i = 0; i < playerNum; i++) {
+                    for (int j = 0; j < playerNum; j++) {
+                        if (payment[i][j] > 0)
+                            drawArrow(canvas, i, j, true, payment[i][j]);
+                    }
+                }
+            }
+        }
+
+        public boolean onTouchEvent(MotionEvent event) {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+
+                inputMethodManager.hideSoftInputFromWindow(editText.getWindowToken(), 0);
+                int x = (int) event.getX();
+                int y = (int) event.getY();
+                int index = findRects(x, y);
+
+                if(index<0)
+                    return  true;
+
+                if(isChanged){
+                    return true;
+                }
+
+                //if Normal Mode
+                if(isNormalMode) {
+                    host = index;
+                    switchMenus();
+                }
+
+                //if Select Mode
+                else if(!isNormalMode){
+                    isSelected[index] = !isSelected[index];
+                    invalidate();
+                }
+                return true;
+            }
+            return false;
+        }
+    }
+}

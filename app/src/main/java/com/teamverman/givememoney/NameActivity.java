@@ -1,0 +1,316 @@
+package com.teamverman.givememoney;
+
+import android.app.Activity;
+
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Color;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.graphics.Typeface;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.BaseAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
+
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.InterstitialAd;
+
+/**
+ * Created by ickhyun on 2017-02-12.
+ */
+
+public class NameActivity  extends Activity {
+
+    final int MIN_NUM = 2;
+    final int MAX_NUM = 8;
+
+    final double RANDOM_NUM = 0.10;
+
+    InputMethodManager inputMethodManager;
+
+    LinearLayout mainLayout;
+    Button insertBtn;
+    Button nextBtn;
+    EditText editText;
+    ListView listView;
+
+    int playerNum = 0;
+    ArrayList<String> playerName = new ArrayList<String>();
+    MyListAdapter myAdapter;
+
+    InterstitialAd interstitialAd;
+
+    BackPressCloseHandler backPressCloseHandler;
+
+    public void displayInterstitial() {
+        if (interstitialAd.isLoaded()) {
+            interstitialAd.show();
+        }
+    }
+
+    private void requestNewInterstitial() {
+        AdRequest adRequest2 = new AdRequest.Builder()
+                .addTestDevice("1A66417BC5450C8887755FEB37D48889")
+                .build();
+        interstitialAd.loadAd(adRequest2);
+    }
+
+    public boolean randomEvent(double rand){
+        if(rand>1)
+            return true;
+        if(rand<0)
+            return false;
+        double temp = Math.random();
+        Log.v("AAAAA", "" + temp);
+
+        if(temp>1-0.5*rand) {
+            return true;
+        }
+        if(temp<0.5*rand)
+            return true;
+        return false;
+    }
+
+    protected void onCreate(Bundle savedInstanceState) {
+
+        super.onCreate(savedInstanceState);
+        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        setContentView(R.layout.activity_names);
+
+        /////////전면 광고//////////
+
+        interstitialAd = new InterstitialAd(this);
+        interstitialAd.setAdUnitId(getResources().getString(R.string.ad_unit_id));
+        AdRequest adRequest2 = new AdRequest.Builder().addTestDevice("1A66417BC5450C8887755FEB37D48889").build();
+        interstitialAd.loadAd(adRequest2);
+        // start Ads
+        interstitialAd.setAdListener(new AdListener() {
+            @Override
+            public void onAdClosed() {
+                requestNewInterstitial();
+            }
+        });
+
+
+        requestNewInterstitial();
+
+
+        /////////////////////////////
+
+        inputMethodManager = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
+
+        mainLayout = (LinearLayout)findViewById(R.id.names_main_layout);
+        insertBtn = (Button)findViewById(R.id.names_insert_btn);
+        nextBtn = (Button)findViewById(R.id.name_next_btn);
+        editText = (EditText)findViewById(R.id.names_edittext);
+        listView = (ListView)findViewById(R.id.name_listview);
+
+        nextBtn.setText("다음 단계로!! (참여자 : "+playerNum+"명)");
+
+        myAdapter = new MyListAdapter(this, R.layout.name_list, playerName);
+        listView.setAdapter(myAdapter);
+
+        final Intent intent = new Intent(this, MainActivity.class);
+
+        backPressCloseHandler = new BackPressCloseHandler(this);
+
+
+        ///////////banner 광고///////////
+
+        AdView mAdView_name = (AdView) findViewById(R.id.adView_name);
+        AdRequest adRequest = new AdRequest.Builder().addTestDevice("1A66417BC5450C8887755FEB37D48889").build();
+        mAdView_name.loadAd(adRequest);
+
+        /////////////////////////////////
+
+
+        //hide keyboard when touching the screen
+        mainLayout.setOnTouchListener(new View.OnTouchListener(){
+            public boolean onTouch(View v, MotionEvent e){
+                if(e.getAction()==MotionEvent.ACTION_DOWN){
+                    inputMethodManager.hideSoftInputFromWindow(editText.getWindowToken(), 0);
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        insertBtn.setOnClickListener(nameBtnTouch);
+
+        nextBtn.setOnClickListener(new Button.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(playerNum<MIN_NUM){
+                    Toast.makeText(NameActivity.this, "혼자서는 돈정산할 수 없습니다!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                intent.putExtra("NAMES", playerName);
+                startActivity(intent);
+            }
+        });
+//        Typeface typeFace = Typeface.createFromAsset(getAssets(), "fonts/TmonMonsori.ttf");
+//        insertBtn.setTypeface(typeFace);
+    }
+
+    @Override
+    public void onBackPressed() {
+        backPressCloseHandler.onBackPressed();
+    }
+
+
+    Button.OnClickListener nameBtnTouch = new Button.OnClickListener(){
+        public void onClick(View v){
+
+            if(playerNum>MAX_NUM-1){
+                Toast.makeText(NameActivity.this, "참여 인원이 8명을 넘을 수 없습니다 ㅠㅠ", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if(editText.getText().toString().length()>4){
+                Toast.makeText(NameActivity.this, "이름이 너무 깁니다! 4자 이내로 입력 바랍니다.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if(editText.getText().toString().length()==0){
+                Toast.makeText(NameActivity.this, "이름을 입력해 주세요!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if(randomEvent(RANDOM_NUM))
+                displayInterstitial();
+
+            playerNum++;
+            playerName.add(editText.getText().toString());
+            myAdapter.notifyDataSetChanged();
+            editText.setText("");
+            nextBtn.setText("다음 단계로!! (참여자 : "+playerNum+"명)");
+
+
+        }
+    };
+
+
+    /////////////뒤로가기 2번 CLASS/////////////////
+
+    public class BackPressCloseHandler {
+        private long backKeyPressedTime = 0;
+        private Toast toast;
+
+        private Activity activity;
+
+        public BackPressCloseHandler(Activity context) {
+            this.activity = context;
+        }
+
+        public void onBackPressed() {
+            if (System.currentTimeMillis() > backKeyPressedTime + 2000) {
+                backKeyPressedTime = System.currentTimeMillis();
+                showGuide();
+                return;
+            }
+            if (System.currentTimeMillis() <= backKeyPressedTime + 2000) {
+                toast.cancel();
+
+                Intent t = new Intent(activity, MainActivity.class);
+                activity.startActivity(t);
+
+                activity.moveTaskToBack(true);
+                activity.finish();
+                android.os.Process.killProcess(android.os.Process.myPid());
+            }
+        }
+
+        public void showGuide() {
+            toast = Toast.makeText(activity, "한번 더 누르시면 종료됩니다.", Toast.LENGTH_SHORT);
+            toast.show();
+        }
+
+    }
+
+
+    /////////////LIST ADAPTER CLASS////////////////
+
+    class  MyListAdapter extends BaseAdapter {
+        Context context;
+        LayoutInflater inflater;
+        ArrayList<String> arrlist;
+        int layout;
+
+        public MyListAdapter(Context c, int l, ArrayList<String> arr){
+            context = c;
+            layout = l;
+            arrlist = arr;
+            inflater = (LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        }
+
+        public int getCount(){
+            return arrlist.size();
+        }
+
+        public String getItem(int pos){
+            return arrlist.get(pos)+"";
+        }
+
+        public long getItemId(int pos){
+            return pos;
+        }
+
+        public View getView(int position, View convertView, ViewGroup parent){
+            final int pos = position;
+            if(convertView==null){
+                convertView = inflater.inflate(layout, parent, false);
+            }
+
+            //set name text
+            TextView txt = (TextView) convertView.findViewById(R.id.namelist_name);
+            txt.setText(""+arrlist.get(pos));
+            Typeface typeFace = Typeface.createFromAsset(getAssets(), "fonts/TmonMonsori.ttf");
+            txt.setTypeface(typeFace);
+            if(pos%2==0)
+                txt.setTextColor(Color.BLACK);
+            else
+                txt.setTextColor(Color.GRAY);
+
+            //set button
+            Button btn = (Button)convertView.findViewById(R.id.namelist_btn);
+            btn.setOnClickListener(new Button.OnClickListener(){
+                public void onClick(View v){
+                    playerName.remove(pos);
+                    myAdapter.notifyDataSetChanged();
+                    playerNum--;
+                    nextBtn.setText("다음 단계로!! (참여자 : "+playerNum+"명)");
+                }
+            });
+
+            //set backgroud - touchout
+            convertView.findViewById(R.id.namelist_layout).setOnTouchListener(new View.OnTouchListener(){
+                public boolean onTouch(View v, MotionEvent e){
+                    if(e.getAction()==MotionEvent.ACTION_DOWN){
+                        inputMethodManager.hideSoftInputFromWindow(editText.getWindowToken(), 0);
+                        return true;
+                    }
+                    return false;
+                }
+            });
+
+
+            return convertView;
+        }
+
+
+    }
+
+
+}
