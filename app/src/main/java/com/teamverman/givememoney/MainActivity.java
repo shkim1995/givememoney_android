@@ -73,7 +73,7 @@ public class MainActivity extends Activity {
 
     //Layouts
     RelativeLayout mainLayout;
-    LinearLayout menuTopNormal;
+    RelativeLayout menuTopNormal;
     LinearLayout menuTopSelected;
     LinearLayout menuButNormal;
     LinearLayout menuButSelected;
@@ -229,7 +229,7 @@ public class MainActivity extends Activity {
 
         //LAYOUTS INITIALIZATION
         mainLayout = (RelativeLayout) findViewById(R.id.main_layout);
-        menuTopNormal = (LinearLayout) findViewById(R.id.menu_top_normal);
+        menuTopNormal = (RelativeLayout) findViewById(R.id.menu_top_normal);
         menuTopSelected = (LinearLayout) findViewById(R.id.menu_top_selected);
         menuButNormal = (LinearLayout) findViewById(R.id.menu_bot_normal);
         menuButSelected = (LinearLayout) findViewById(R.id.menu_bot_selected);
@@ -253,8 +253,11 @@ public class MainActivity extends Activity {
         tutorialBtn = (Button)findViewById(R.id.menu_tutorial_btn);
 
         initializeButtons();
-        frontBtn.setEnabled(false);
+
+        backBtn.setBackgroundResource(R.drawable.arrow_1_de);
         backBtn.setEnabled(false);
+        frontBtn.setBackgroundResource(R.drawable.arrow_2_de);
+        frontBtn.setEnabled(false);
 
         //Text Initialization
         editText = (EditText)findViewById(R.id.menu_edittext);
@@ -344,15 +347,24 @@ public class MainActivity extends Activity {
     }
 
     void frontBackBtnSwitch(){
-        if(log.backable())
-            backBtn.setEnabled(true);
-        else
-            backBtn.setEnabled(false);
 
-        if(log.frontable())
+        if(log.backable()) {
+            backBtn.setBackgroundResource(R.drawable.arrow_1);
+            backBtn.setEnabled(true);
+        }
+        else {
+            backBtn.setBackgroundResource(R.drawable.arrow_1_de);
+            backBtn.setEnabled(false);
+        }
+
+        if(log.frontable()) {
+            frontBtn.setBackgroundResource(R.drawable.arrow_2);
             frontBtn.setEnabled(true);
-        else
+        }
+        else {
+            frontBtn.setBackgroundResource(R.drawable.arrow_2_de);
             frontBtn.setEnabled(false);
+        }
     }
 
     void initializeButtons(){
@@ -497,6 +509,7 @@ public class MainActivity extends Activity {
         backBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                Log.v("ASDSDSDSDA","SDSADSAD");
                 if(log.backable()){
                     log.lastIndex--;
                     renew_payment();
