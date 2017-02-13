@@ -1,10 +1,16 @@
 package com.teamverman.givememoney;
 
 import android.app.Activity;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.support.v4.view.PagerAdapter;
+import android.support.v4.view.ViewPager;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -16,11 +22,10 @@ import android.widget.TextView;
 
 public class TutPopup extends Activity {
 
-    Button front;
-    Button back;
-    ImageView img;
-    TextView txt;
     int pageNum;
+
+    ViewPager viewPager;
+    TextView tv;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,77 +41,93 @@ public class TutPopup extends Activity {
 
         getWindow().setLayout((int) (w * 0.91), (int) (h * 0.70));
 
-        front = (Button)findViewById(R.id.tut_front_btn);
-        back = (Button)findViewById(R.id.tut_back_btn);
-        img = (ImageView)findViewById(R.id.tut_image);
-        txt = (TextView)findViewById(R.id.tut_page);
 
-        back.setVisibility(View.INVISIBLE);
 
-        back.setOnClickListener(changeImg);
-        front.setOnClickListener(changeImg);
+        viewPager = (ViewPager) findViewById(R.id.vp);
+        ImageAdapter adapter = new ImageAdapter(this);
+        viewPager.setAdapter(adapter);
+        viewPager.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+                                              @Override
+                                              public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                                                  int x = viewPager.getCurrentItem();
+                                                  tv.setText((x+1)+" / 9");
+                                              }
+
+                                              @Override
+                                              public void onPageSelected(int position) {
+
+                                              }
+
+                                              @Override
+                                              public void onPageScrollStateChanged(int state) {
+                                                  int x = viewPager.getCurrentItem();
+                                                  tv.setText((x+1)+" / 9");
+                                              }
+                                          }
+
+        );
+        tv = (TextView)findViewById(R.id.tut_page);
 
         pageNum=1;
 
     }
 
-    View.OnClickListener changeImg = new View.OnClickListener() {
+    class ImageAdapter extends PagerAdapter {
+
+        Context context;
+        Bitmap galImage;
+        BitmapFactory.Options options;
+        private final int[] galImages = new int[] {
+
+                R.drawable.tut1,
+                R.drawable.tut2,
+                R.drawable.tut3,
+                R.drawable.tut4,
+                R.drawable.tut5,
+                R.drawable.tut6,
+                R.drawable.tut7,
+                R.drawable.tut8,
+                R.drawable.tut9
+        };
+
+        ImageAdapter(Context context) {
+            this.context = context;
+            options = new BitmapFactory.Options();
+        }
+
         @Override
-        public void onClick(View v) {
-            if(v.getId()==R.id.tut_front_btn){
-                Log.v("ASDSDA", ""+pageNum);
-                if(pageNum!=9) {
-                    pageNum++;
-
-                }
-                changePage();
-            }
-            if(v.getId()==R.id.tut_back_btn){
-                if(pageNum!=1)
-                    pageNum--;
-                changePage();
-            }
+        public int getCount() {
+            return galImages.length;
         }
-    };
 
-    int imgID(){
-        switch (pageNum){
-            case 1:
-                return R.drawable.tut1;
-            case 2:
-                return R.drawable.tut2;
-            case 3:
-                return R.drawable.tut3;
-            case 4:
-                return R.drawable.tut4;
-            case 5:
-                return R.drawable.tut5;
-            case 6:
-                return R.drawable.tut6;
-            case 7:
-                return R.drawable.tut7;
-            case 8:
-                return R.drawable.tut8;
-            case 9:
-                return R.drawable.tut9;
+        @Override
+        public boolean isViewFromObject(View view, Object object) {
+            return view == ((ImageView) object);
         }
-        return 0;
+
+        @Override
+        public Object instantiateItem(ViewGroup container, int position) {
+            ImageView imageView = new ImageView(context);
+
+            imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+
+            options.inSampleSize = 1;
+            galImage = BitmapFactory.decodeResource(context.getResources(), galImages[position], options);
+
+            imageView.setImageBitmap(galImage);
+            ((ViewPager) container).addView(imageView, 0);
+            return imageView;
+        }
+
+        @Override
+        public void destroyItem(ViewGroup container, int position, Object object) {
+            ((ViewPager) container).removeView((ImageView) object);
+        }
+
+
+        public void onPageScrollStateChanged(int state) {
+        }
     }
 
-    void changePage(){
-        if(pageNum==1) {
-            back.setVisibility(View.INVISIBLE);
-            front.setVisibility(View.VISIBLE);
-        }
-        else if(pageNum==9) {
-            back.setVisibility(View.VISIBLE);
-            front.setVisibility(View.INVISIBLE);
-        }
-        else {
-            back.setVisibility(View.VISIBLE);
-            front.setVisibility(View.VISIBLE);
-        }
-        txt.setText(""+pageNum+" / 9");
-        img.setImageResource(imgID());
-    }
+
 }
