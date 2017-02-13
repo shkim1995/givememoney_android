@@ -5,7 +5,7 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingBottom="10dp"
+    android:paddingBottom="16dp"
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
@@ -119,69 +119,80 @@
 
     <!--</LinearLayout>-->
 
-    <RelativeLayout
+    <LinearLayout
         android:id="@+id/menu_top_normal"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:gravity="center_vertical"
-        android:background="#DDDDDD"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
         >
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:gravity="center_vertical"
+            android:background="#DDDDDD"
+            >
 
-        <Button
-            android:id="@+id/menu_tutorial_btn"
-            android:layout_width="35dp"
-            android:layout_height="35dp"
-            android:background="@drawable/help"
-            android:layout_alignParentRight="true"
-            android:layout_marginRight="10dp"/>
+            <Button
+                android:id="@+id/menu_tutorial_btn"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                android:background="@drawable/help"
+                android:layout_alignParentRight="true"
+                android:layout_marginRight="10dp"/>
 
-        <Button
-            android:id="@+id/menu_share_btn"
-            android:layout_width="35dp"
-            android:layout_height="35dp"
-            android:background="@drawable/sharethis"
-            android:layout_toLeftOf="@id/menu_tutorial_btn"
-            android:layout_marginRight="10dp"
-            />
-
-
-        <Button
-            android:id="@+id/menu_save_btn"
-            android:layout_width="35dp"
-            android:layout_height="35dp"
-            android:background="@drawable/save"
-            android:layout_toLeftOf="@id/menu_share_btn"
-            android:layout_marginRight="10dp"
-            />
-
-        <Button
-            android:id="@+id/menu_log_btn"
-            android:layout_width="35dp"
-            android:layout_height="35dp"
-            android:background="@drawable/log"
-            android:layout_toLeftOf="@id/menu_save_btn"
-            android:layout_marginRight="10dp"
-            />
-
-        <Button
-            android:id="@+id/menu_back_btn"
-            android:layout_width="33dp"
-            android:layout_height="33dp"
-            android:background="@drawable/arrow_1"
-            android:layout_marginRight="15dp"
-            android:layout_marginLeft="10dp"/>
-
-        <Button
-            android:id="@+id/menu_front_btn"
-            android:layout_width="33dp"
-            android:layout_height="33dp"
-            android:background="@drawable/arrow_2"
-            android:layout_toRightOf="@id/menu_back_btn"
-            android:layout_marginRight="10dp"
-            />
+            <Button
+                android:id="@+id/menu_share_btn"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                android:background="@drawable/sharethis"
+                android:layout_toLeftOf="@id/menu_tutorial_btn"
+                android:layout_marginRight="10dp"
+                />
 
 
-    </RelativeLayout>
+            <Button
+                android:id="@+id/menu_save_btn"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                android:background="@drawable/save"
+                android:layout_toLeftOf="@id/menu_share_btn"
+                android:layout_marginRight="10dp"
+                />
+
+            <Button
+                android:id="@+id/menu_log_btn"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                android:background="@drawable/log"
+                android:layout_toLeftOf="@id/menu_save_btn"
+                android:layout_marginRight="10dp"
+                />
+
+            <Button
+                android:id="@+id/menu_back_btn"
+                android:layout_width="33dp"
+                android:layout_height="33dp"
+                android:background="@drawable/arrow_1"
+                android:layout_marginRight="15dp"
+                android:layout_marginLeft="10dp"/>
+
+            <Button
+                android:id="@+id/menu_front_btn"
+                android:layout_width="33dp"
+                android:layout_height="33dp"
+                android:background="@drawable/arrow_2"
+                android:layout_toRightOf="@id/menu_back_btn"
+                android:layout_marginRight="10dp"
+                />
+
+
+        </RelativeLayout>
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="2dip"
+            android:background="@drawable/drop_shadow">
+        </View>
+    </LinearLayout>
 
 
     <LinearLayout

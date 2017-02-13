@@ -73,7 +73,7 @@ public class MainActivity extends Activity {
 
     //Layouts
     RelativeLayout mainLayout;
-    RelativeLayout menuTopNormal;
+    LinearLayout menuTopNormal;
     LinearLayout menuTopSelected;
     LinearLayout menuButNormal;
     LinearLayout menuButSelected;
@@ -229,7 +229,7 @@ public class MainActivity extends Activity {
 
         //LAYOUTS INITIALIZATION
         mainLayout = (RelativeLayout) findViewById(R.id.main_layout);
-        menuTopNormal = (RelativeLayout) findViewById(R.id.menu_top_normal);
+        menuTopNormal = (LinearLayout) findViewById(R.id.menu_top_normal);
         menuTopSelected = (LinearLayout) findViewById(R.id.menu_top_selected);
         menuButNormal = (LinearLayout) findViewById(R.id.menu_bot_normal);
         menuButSelected = (LinearLayout) findViewById(R.id.menu_bot_selected);
