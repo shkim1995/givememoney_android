@@ -62,16 +62,19 @@ public class LogPopup extends Activity {
             }
         }
         int payment = MainActivity.log.get(index).pay;
+        String reason = MainActivity.log.get(index).reason;
 
 
         TextView tv1 =  (TextView) View.inflate(this, R.layout.log_text, null );
         TextView tv2 =  (TextView) View.inflate(this, R.layout.log_text, null );
         TextView tv3 =  (TextView) View.inflate(this, R.layout.log_text, null );
 
-        String text = +(index+1)+". 지불한 사람 : "+host;
+        String text = +(index+1)+". 돈낸 사람 : "+host;
+        if(!reason.equals(""))
+            text = text+" ("+reason+")";
         tv1.setText(text);
         tv1.setTypeface(typeFace);
-        tv1.setTextSize(22);
+        tv1.setTextSize(20);
         tv1.setTextColor(Color.BLACK);
         window.addView(tv1);
 
@@ -80,7 +83,7 @@ public class LogPopup extends Activity {
             text = text+baggers.get(i)+" ";
         tv2.setText(text);
         tv2.setTypeface(typeFace);
-        tv2.setTextSize(17);
+        tv2.setTextSize(15);
         tv2.setTextColor(Color.GRAY);
         window.addView(tv2);
 
@@ -90,7 +93,7 @@ public class LogPopup extends Activity {
         }
         tv3.setText(text);
         tv3.setTypeface(typeFace);
-        tv3.setTextSize(17);
+        tv3.setTextSize(15);
         tv3.setTextColor(0xFFB22222);
         window.addView(tv3);
 

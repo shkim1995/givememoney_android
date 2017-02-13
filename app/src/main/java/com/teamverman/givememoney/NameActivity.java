@@ -28,6 +28,7 @@ import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.InterstitialAd;
+import com.google.android.gms.plus.model.people.Person;
 
 /**
  * Created by ickhyun on 2017-02-12.
@@ -54,7 +55,6 @@ public class NameActivity  extends Activity {
 
     InterstitialAd interstitialAd;
 
-    BackPressCloseHandler backPressCloseHandler;
 
     public void displayInterstitial() {
         if (interstitialAd.isLoaded()) {
@@ -83,6 +83,12 @@ public class NameActivity  extends Activity {
         if(temp<0.5*rand)
             return true;
         return false;
+    }
+
+    public void onBackPressed() {
+        final Intent intent = new Intent(this, ModeActivity.class);
+        startActivity(intent);
+        finish();
     }
 
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,13 +126,14 @@ public class NameActivity  extends Activity {
         listView = (ListView)findViewById(R.id.name_listview);
 
         nextBtn.setText("다음 단계로!! (참여자 : "+playerNum+"명)");
+        nextBtn.setEnabled(false);
 
         myAdapter = new MyListAdapter(this, R.layout.name_list, playerName);
         listView.setAdapter(myAdapter);
 
         final Intent intent = new Intent(this, MainActivity.class);
 
-        backPressCloseHandler = new BackPressCloseHandler(this);
+
 
 
         ///////////banner 광고///////////
@@ -166,10 +173,6 @@ public class NameActivity  extends Activity {
 //        insertBtn.setTypeface(typeFace);
     }
 
-    @Override
-    public void onBackPressed() {
-        backPressCloseHandler.onBackPressed();
-    }
 
 
     Button.OnClickListener nameBtnTouch = new Button.OnClickListener(){
@@ -196,6 +199,8 @@ public class NameActivity  extends Activity {
             myAdapter.notifyDataSetChanged();
             editText.setText("");
             nextBtn.setText("다음 단계로!! (참여자 : "+playerNum+"명)");
+            if(playerNum>=2)
+                nextBtn.setEnabled(true);
 
 
         }
@@ -204,40 +209,7 @@ public class NameActivity  extends Activity {
 
     /////////////뒤로가기 2번 CLASS/////////////////
 
-    public class BackPressCloseHandler {
-        private long backKeyPressedTime = 0;
-        private Toast toast;
 
-        private Activity activity;
-
-        public BackPressCloseHandler(Activity context) {
-            this.activity = context;
-        }
-
-        public void onBackPressed() {
-            if (System.currentTimeMillis() > backKeyPressedTime + 2000) {
-                backKeyPressedTime = System.currentTimeMillis();
-                showGuide();
-                return;
-            }
-            if (System.currentTimeMillis() <= backKeyPressedTime + 2000) {
-                toast.cancel();
-
-                Intent t = new Intent(activity, MainActivity.class);
-                activity.startActivity(t);
-
-                activity.moveTaskToBack(true);
-                activity.finish();
-                android.os.Process.killProcess(android.os.Process.myPid());
-            }
-        }
-
-        public void showGuide() {
-            toast = Toast.makeText(activity, "한번 더 누르시면 종료됩니다.", Toast.LENGTH_SHORT);
-            toast.show();
-        }
-
-    }
 
 
     /////////////LIST ADAPTER CLASS////////////////
@@ -291,6 +263,8 @@ public class NameActivity  extends Activity {
                     myAdapter.notifyDataSetChanged();
                     playerNum--;
                     nextBtn.setText("다음 단계로!! (참여자 : "+playerNum+"명)");
+                    if(playerNum<2)
+                        nextBtn.setEnabled(false);
                 }
             });
 

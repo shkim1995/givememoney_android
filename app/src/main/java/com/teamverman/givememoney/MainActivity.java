@@ -16,6 +16,7 @@ import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -30,6 +31,12 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.lang.Math;
 
@@ -91,11 +98,18 @@ public class MainActivity extends Activity {
     Button cancelBtn;
     Button insertButton;
     Button tutorialBtn;
+    Button saveBtn;
 
     //Texts
     EditText editText;
+    EditText editText2;
     TextView text1;
     TextView text2;
+
+
+    //debugs
+    Button btnDeb;
+    Button btnDeb2;
 
     static PaymentLog log;
 
@@ -157,6 +171,7 @@ public class MainActivity extends Activity {
         int host;
         ArrayList<Integer> baggers;
         int pay;
+        String reason;
     }
 
     class PaymentLog{
@@ -227,6 +242,10 @@ public class MainActivity extends Activity {
         for(int i=0; i<playerNum; i++)
             isSelected[i] = false;
 
+        //DEBUG INITIALIZATION
+        btnDeb = (Button)findViewById(R.id.menu_deb);
+        btnDeb2 = (Button)findViewById(R.id.menu_deb2);
+
         //LAYOUTS INITIALIZATION
         mainLayout = (RelativeLayout) findViewById(R.id.main_layout);
         menuTopNormal = (LinearLayout) findViewById(R.id.menu_top_normal);
@@ -251,7 +270,7 @@ public class MainActivity extends Activity {
         cancelBtn = (Button)findViewById(R.id.cancel_btn);
         insertButton = (Button)findViewById(R.id.menu_insert_btn);
         tutorialBtn = (Button)findViewById(R.id.menu_tutorial_btn);
-
+        saveBtn = (Button)findViewById(R.id.menu_save_btn);
         initializeButtons();
 
         backBtn.setBackgroundResource(R.drawable.arrow_1_de);
@@ -261,6 +280,7 @@ public class MainActivity extends Activity {
 
         //Text Initialization
         editText = (EditText)findViewById(R.id.menu_edittext);
+        editText2 = (EditText)findViewById(R.id.menu_edittext2);
         text1 = (TextView)findViewById(R.id.text1);
         text2 = (TextView)findViewById(R.id.text2);
         Typeface typeFace = Typeface.createFromAsset(getAssets(), "fonts/TmonMonsori.ttf");
@@ -367,7 +387,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    void initializeButtons(){
+    void initializeButtons() {
 
         final Intent intentPop = new Intent(this, LogPopup.class);
         final Intent intentTutorial = new Intent(this, TutPopup.class);
@@ -377,36 +397,41 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View view) {
                 int payment;
+                String reason;
 
                 //채무자가 아무도 없을 때
                 int numBaggers = 0;
-                for(int i=0; i<playerNum; i++)
-                    if(isSelected[i])
+                for (int i = 0; i < playerNum; i++)
+                    if (isSelected[i])
                         numBaggers++;
-                if(numBaggers==0){
+                if (numBaggers == 0) {
                     Toast.makeText(MainActivity.this, "빚쟁이들을 입력해 주세요", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
 
                 //숫자 입력 오류
-                try{
+                try {
                     payment = Integer.parseInt(editText.getText().toString());
-                } catch(Exception e){
+                    reason = editText2.getText().toString();
+                } catch (Exception e) {
                     Toast.makeText(MainActivity.this, "숫자를 입력해 주세요!", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
                 editText.setText("");
+                editText2.setText("");
 
 
                 //log update
 
                 Info newinfo = new Info();
                 newinfo.pay = payment;
+                newinfo.reason = reason;
+
                 ArrayList<Integer> baggers = new ArrayList<Integer>();
-                for(int i=0; i<playerNum; i++){
-                    if(isSelected[i]==true){
+                for (int i = 0; i < playerNum; i++) {
+                    if (isSelected[i] == true) {
                         isSelected[i] = false;
                         baggers.add(i);
                     }
@@ -425,7 +450,7 @@ public class MainActivity extends Activity {
                 //back, front btn activation
                 frontBackBtnSwitch();
 
-                if(randomEvent(RANDOM_NUM)){
+                if (randomEvent(RANDOM_NUM)) {
                     displayInterstitial();
                 }
             }
@@ -435,7 +460,7 @@ public class MainActivity extends Activity {
         selectAllBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                for(int i=0; i<playerNum; i++){
+                for (int i = 0; i < playerNum; i++) {
                     isSelected[i] = true;
                 }
                 centerView.invalidate();
@@ -446,7 +471,7 @@ public class MainActivity extends Activity {
         deselectAllBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                for(int i=0; i<playerNum; i++){
+                for (int i = 0; i < playerNum; i++) {
                     isSelected[i] = false;
                 }
                 centerView.invalidate();
@@ -457,7 +482,7 @@ public class MainActivity extends Activity {
         cancelBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                for(int i=0; i<playerNum; i++){
+                for (int i = 0; i < playerNum; i++) {
                     isSelected[i] = false;
                 }
                 host = -1;
@@ -470,7 +495,7 @@ public class MainActivity extends Activity {
         changeBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(!isChanged){
+                if (!isChanged) {
                     isChanged = true;
                     changeBtn.setText("되돌리기!");
                     frontBtn.setEnabled(false);
@@ -478,13 +503,12 @@ public class MainActivity extends Activity {
                     change_payment();
                     centerView.invalidate();
                     return;
-                }
-                else{
+                } else {
                     isChanged = false;
                     changeBtn.setText("간략하게!!");
-                    if(log.lastIndex!=0)
+                    if (log.lastIndex != 0)
                         backBtn.setEnabled(true);
-                    if(log.frontable())
+                    if (log.frontable())
                         frontBtn.setEnabled(true);
                     renew_payment();
                     centerView.invalidate();
@@ -496,7 +520,7 @@ public class MainActivity extends Activity {
         frontBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(log.frontable()){
+                if (log.frontable()) {
                     log.lastIndex++;
                     renew_payment();
                     centerView.invalidate();
@@ -509,8 +533,8 @@ public class MainActivity extends Activity {
         backBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Log.v("ASDSDSDSDA","SDSADSAD");
-                if(log.backable()){
+                Log.v("ASDSDSDSDA", "SDSADSAD");
+                if (log.backable()) {
                     log.lastIndex--;
                     renew_payment();
                     centerView.invalidate();
@@ -545,7 +569,54 @@ public class MainActivity extends Activity {
                 startActivity(intentTutorial);
             }
         });
+
+        //save Btn
+        saveBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                saveData("");
+            }
+        });
+
+        btnDeb.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                try {
+                    String data = "";
+                    FileInputStream fis = openFileInput("name_list.txt");
+                    BufferedReader buffer = new BufferedReader(new InputStreamReader(fis));
+                    String str = buffer.readLine();
+                    while (str != null) {
+                        data = data + ", " + str;
+                        str = buffer.readLine();
+                    }
+                    Log.v("DEBUG_SAVE", data);
+                    buffer.close();
+                } catch (Exception e) {
+                    //Log.v("DEBUG_SVE", "exception");
+                    e.printStackTrace();
+                }
+
+            }
+        });
+
+        btnDeb2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    deleteFile("name_list.txt");
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+        });
     }
+
+
+    /////////////////////////////////KAKAO FTN//////////////////////////////////////////////////////
 
     public void shareKakao()
     {
@@ -587,13 +658,144 @@ public class MainActivity extends Activity {
     }
 
 
+    /////////////////////////////SAVING FUNCTION////////////////////////////////
+
+    void saveData(String str){
+
+        AlertDialog.Builder alert = new AlertDialog.Builder(this);
+        alert.setTitle("저장하시겠습니까?");
+        alert.setMessage("파일 명을 입력하세요.");
+
+        final EditText name = new EditText(this);
+        name.setText(str);
+        name.setHint("파일 명 입력 (10자 이내)");
+        alert.setView(name);
+
+        alert.setPositiveButton("저장", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                //입력값이 없는 경우
+                if(name.getText().toString().equals("")){
+                    Toast.makeText(MainActivity.this, "파일 명을 입력해 주세요!", Toast.LENGTH_SHORT).show();
+                    saveData("");
+                }
+                else if(name.getText().toString().length()>10){
+                    Toast.makeText(MainActivity.this, "파일 명이 너무 깁니다!", Toast.LENGTH_SHORT).show();
+                    saveData(name.getText().toString());
+                }
+                //입력값이 올바른 경우
+                else{
+                    String fileName = name.getText().toString();
+                    if(isStringInFile(fileName)){
+                        sameFileName(fileName);
+                    }
+                    else{
+                        saveFile(fileName, true);
+                    }
+                }
+
+            }
+        });
+
+        alert.setNegativeButton("취소",new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+
+            }
+        });
+
+        alert.show();
+    }
+
+    void saveFile(String str, boolean dup){
+
+        //이름 추가
+        if(dup) {
+            try {
+                FileOutputStream fos = openFileOutput("name_list.txt", Context.MODE_APPEND);
+                PrintWriter out = new PrintWriter(fos);
+                out.println(str);
+                out.close();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        //파일 추가
+        try {
+            deleteFile(str+".txt");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try{
+            FileOutputStream fos = openFileOutput(str+".txt", Context.MODE_APPEND);
+            PrintWriter out = new PrintWriter(fos);
+            ///////////FTN/////////////
+            out.println(str);
+            out.close();
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    boolean isStringInFile(String testStr){
+        try{
+            StringBuffer data = new StringBuffer();
+            FileInputStream fis = openFileInput("name_list.txt");
+            BufferedReader buffer = new BufferedReader(new InputStreamReader(fis));
+            String str = buffer.readLine();
+            while(str!=null){
+                if(str.equals(testStr))
+                    return true;
+                str = buffer.readLine();
+            }
+            buffer.close();
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+
+    void sameFileName(final String fileName){
+
+        String alertTitle="파일명 확인";
+        String buttonMessage = "겹치는 파일명이 있습니다.\n 덮어쓰시겠습니까?";
+
+        String btnYes = "네";
+        String btnNo = "아니오";
+
+        new AlertDialog.Builder(MainActivity.this)
+                .setTitle(alertTitle)
+                .setMessage(buttonMessage)
+                .setPositiveButton(btnYes, new DialogInterface.OnClickListener() {
+                    @Override
+                    //덮어쓰지 않는 경우 - 돌아가기
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        saveFile(fileName, false);
+                    }
+                })
+                .setNegativeButton(btnNo, new DialogInterface.OnClickListener() {
+                    @Override
+                    //덮어쓰는 경우 - 저장 함수 호출
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        saveData(fileName);
+                    }
+                })
+                .show();
+    }
+
+
+
+    /////////////////////////PAYMENT PUNCTIONS/////////////////////////////////
+
     int round(int n){
         if(n%10<5)
             return (n/10)*10;
         return (n/10+1)*10;
     }
 
-    /////////////////////////PAYMENT PUNCTIONS/////////////////////////////////
     void renew_payment() {
 
         for (int i = 0; i < playerNum; i++)

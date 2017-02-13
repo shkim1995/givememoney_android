@@ -54,35 +54,15 @@ public class TitleActivity extends Activity {
         this.requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_title);
 
-        final Intent intent = new Intent(this, NameActivity.class);
-
-        interstitialAd = new InterstitialAd(this);
-        interstitialAd.setAdUnitId(getResources().getString(R.string.ad_unit_id));
-        AdRequest adRequest2 = new AdRequest.Builder().addTestDevice("1A66417BC5450C8887755FEB37D48889").build();
-        interstitialAd.loadAd(adRequest2);
-        // start Ads
-        interstitialAd.setAdListener(new AdListener() {
-            @Override
-            public void onAdClosed() {
-                startActivity(intent);
-                finish();
-            }
-        });
-
-        requestNewInterstitial();
+       final Intent intent = new Intent(this, ModeActivity.class);
 
 
         RelativeLayout rel = (RelativeLayout)findViewById(R.id.title_relative);
         rel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(randomEvent(0.5)) {
-                    displayInterstitial();
-                }
-                else{
-                    startActivity(intent);
-                    finish();
-                }
+                startActivity(intent);
+                finish();
             }
         });
 
