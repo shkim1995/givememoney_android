@@ -34,8 +34,8 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:layout_centerInParent="true"
-            android:text="지불자"
-            android:textSize="30dp"
+            android:text="돈낸사람"
+            android:textSize="28dp"
             />
 
         <TextView
@@ -45,7 +45,7 @@
             android:gravity="center"
             android:layout_centerInParent="true"
             android:text="김세훈"
-            android:textSize="50dp"
+            android:textSize="47dp"
             />
 
     </LinearLayout>
